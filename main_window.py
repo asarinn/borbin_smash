@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         self.surprise_accuracy_enabled = False
         self.powerful_blow_enabled = False
         self.flanking_enabled = False
+        self.deadly_juggernaut_enabled = False
 
         # Connections to toggle state on check box click
         self.ui.two_handed_check_box.clicked.connect(self.two_handed_toggled)
@@ -38,6 +39,10 @@ class MainWindow(QMainWindow):
         self.ui.surprise_accuracy_check_box.clicked.connect(self.surprise_accuracy_toggled)
         self.ui.powerful_blow_check_box.clicked.connect(self.powerful_blow_toggled)
         self.ui.flanking_bonus_check_box.clicked.connect(self.flanking_toggled)
+        self.ui.deadly_juggernaut_check_box.clicked.connect(self.deadly_juggernaut_toggled)
+
+        # Auto update when spin box toggled
+        self.ui.kills_spin_box.valueChanged.connect(self.update_output)
 
         # Initialize output with initial settings
         self.update_output()
@@ -76,6 +81,10 @@ class MainWindow(QMainWindow):
 
     def flanking_toggled(self, state):
         self.flanking_enabled = state
+        self.update_output()
+
+    def deadly_juggernaut_toggled(self, state):
+        self.deadly_juggernaut_enabled = state
         self.update_output()
 
     def update_output(self):
@@ -127,6 +136,9 @@ class MainWindow(QMainWindow):
         if self.flanking_enabled:
             attack_bonus += self.configuration['FLANKING']
 
+        if self.deadly_juggernaut_enabled:
+            attack_bonus += self.ui.kills_spin_box.value()
+
         return attack_bonus
 
     def calculate_damage(self, effective_strength_bonus):
@@ -148,6 +160,9 @@ class MainWindow(QMainWindow):
 
         if self.inspire_courage_enabled:
             damage += self.configuration['INSPIRE']
+
+        if self.deadly_juggernaut_enabled:
+            damage += self.ui.kills_spin_box.value()
 
         if self.enlarged_enabled:
             die = self.configuration['ENLARGE_DAMAGE_DIE']
