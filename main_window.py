@@ -1,35 +1,10 @@
+import json
+
 # Third party imports
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QMainWindow)
 
 # Local imports
 from main_window_init import Ui_MainWindow
-
-# Character Info
-STR = 24
-RAGE_STR_BONUS = 4
-ENLARGE_STR_BONUS = 2
-
-# Attack Bonuses
-BAB = 10
-FEATS = 0
-HASTE = 1
-SURPRISE_ACCURACY = 2
-ENLARGE = -1
-POWER_ATTACK_ATTACK = -3
-FLANKING = 2
-
-# Damage Bonuses
-POWERFUL_BLOW = 2
-TWO_HANDED_MULTI = 1.5
-POWER_ATTACK_DAMAGE = 6
-DAMAGE_DIE = [1, 10]
-ENLARGE_DAMAGE_DIE = [2, 8]
-
-# Other
-WEAPON_BONUS = 3  # Enchantment bonus
-WEAPON_CRITICAL_MOD = 4  # x2, x3, x4, etc
-INSPIRE = 3
 
 
 class MainWindow(QMainWindow):
@@ -39,6 +14,8 @@ class MainWindow(QMainWindow):
         # Basic pyqt init for gui window
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        self.configuration = json.load(open("configuration.json", "r"))
 
         # Class variables to hold state of check boxes
         self.two_handed_enabled = True
@@ -103,67 +80,78 @@ class MainWindow(QMainWindow):
 
     def update_output(self):
         # Calculate strength bonus
-        strength = STR
+        strength = self.configuration['STR']
         if self.raging_enabled:
-            strength += RAGE_STR_BONUS
+            strength += self.configuration['RAGE_STR_BONUS']
         if self.enlarged_enabled:
-            strength += ENLARGE_STR_BONUS
+            strength += self.configuration['ENLARGE_STR_BONUS']
         effective_strength_bonus = int((strength - 10) / 2)
 
+        # Calculate number of attacks
+        num_attacks = 1 + int((self.configuration['BAB'] - 1) / 5)
+
         attack_bonus = self.calculate_attack_bonus(effective_strength_bonus)
-        self.ui.attack_bonus_label.setText(f' Attack Bonus: +{attack_bonus}')
+
+        attack_text = f' Attack Bonus: +{attack_bonus}'
+        if self.haste_enabled:
+            attack_text = attack_text + f'/{attack_bonus}'
+        for i in range(num_attacks - 1):
+            attack_text = attack_text + f'/{attack_bonus - (5 * (i + 1))}'
+        self.ui.attack_bonus_label.setText(attack_text)
 
         die, damage = self.calculate_damage(effective_strength_bonus)
         self.ui.damage_label.setText(f'Damage: {die[0]}d{die[1]} + {damage}')
+
+        crit_mod = self.configuration["WEAPON_CRITICAL_MOD"]
         self.ui.crit_damage_label.setText(
-            f'Critical Damage: {WEAPON_CRITICAL_MOD * die[0]}d{die[1]} + {WEAPON_CRITICAL_MOD * damage}')
+            f'Critical Damage: {crit_mod * die[0]}d{die[1]} + {crit_mod * damage}')
 
     def calculate_attack_bonus(self, effective_strength_bonus):
-        attack_bonus = BAB + WEAPON_BONUS + effective_strength_bonus
+        attack_bonus = self.configuration['BAB'] + self.configuration['WEAPON_BONUS'] + effective_strength_bonus
 
         if self.inspire_courage_enabled:
-            attack_bonus += INSPIRE
+            attack_bonus += self.configuration['INSPIRE']
 
         if self.haste_enabled:
-            attack_bonus += HASTE
+            attack_bonus += self.configuration['HASTE']
 
         if self.power_attack_enabled:
-            attack_bonus += POWER_ATTACK_ATTACK
+            attack_bonus += self.configuration['POWER_ATTACK_ATTACK']
 
         if self.enlarged_enabled:
-            attack_bonus += ENLARGE
+            attack_bonus += self.configuration['ENLARGE']
 
         if self.surprise_accuracy_enabled:
-            attack_bonus += SURPRISE_ACCURACY
+            attack_bonus += self.configuration['SURPRISE_ACCURACY']
 
         if self.flanking_enabled:
-            attack_bonus += FLANKING
+            attack_bonus += self.configuration['FLANKING']
 
         return attack_bonus
 
     def calculate_damage(self, effective_strength_bonus):
-        damage = WEAPON_BONUS
+        damage = self.configuration['WEAPON_BONUS']
 
         strength_damage = effective_strength_bonus
         if self.two_handed_enabled:
-            strength_damage = int(strength_damage * TWO_HANDED_MULTI)
+            strength_damage = int(strength_damage * self.configuration['TWO_HANDED_MULTI'])
         damage += strength_damage
 
         if self.powerful_blow_enabled:
-            damage += POWERFUL_BLOW
+            damage += self.configuration['POWERFUL_BLOW']
 
         power_attack_damage = 6
         if self.two_handed_enabled:
-            power_attack_damage = int(power_attack_damage * TWO_HANDED_MULTI)
+            power_attack_damage = int(power_attack_damage * self.configuration['TWO_HANDED_MULTI'])
         if self.power_attack_enabled:
             damage += power_attack_damage
 
         if self.inspire_courage_enabled:
-            damage += INSPIRE
+            damage += self.configuration['INSPIRE']
 
         if self.enlarged_enabled:
-            die = ENLARGE_DAMAGE_DIE
+            die = self.configuration['ENLARGE_DAMAGE_DIE']
         else:
-            die = DAMAGE_DIE
+            die = self.configuration['DAMAGE_DIE']
 
         return die, damage
