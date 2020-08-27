@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
 
         # Auto update when spin box toggled
         self.ui.kills_spin_box.valueChanged.connect(self.update_output)
+        self.ui.num_hits_spin_box.valueChanged.connect(self.update_output)
 
         # Initialize output with initial settings
         self.update_output()
@@ -99,6 +100,7 @@ class MainWindow(QMainWindow):
         # Calculate number of attacks
         num_attacks = 1 + int((self.configuration['BAB'] - 1) / 5)
 
+        # Calculate atack bonus
         attack_bonus = self.calculate_attack_bonus(effective_strength_bonus)
 
         attack_text = f' Attack Bonus: +{attack_bonus}'
@@ -108,12 +110,23 @@ class MainWindow(QMainWindow):
             attack_text = attack_text + f'/{attack_bonus - (5 * (i + 1))}'
         self.ui.attack_bonus_label.setText(attack_text)
 
+        # Set new spin box max
+        spin_max = num_attacks
+        if self.haste_enabled:
+            spin_max += 1
+        self.ui.num_hits_spin_box.setMaximum(spin_max)
+
+        # Get num hits
+        num_hits = int(self.ui.num_hits_spin_box.value())
+
+        # Calculate damage
         die, damage = self.calculate_damage(effective_strength_bonus)
-        self.ui.damage_label.setText(f'Damage: {die[0]}d{die[1]} + {damage}')
+        damage *= num_hits
+        self.ui.damage_label.setText(f'Damage: {num_hits * die[0]}d{die[1]} + {damage}')
 
         crit_mod = self.configuration["WEAPON_CRITICAL_MOD"]
         self.ui.crit_damage_label.setText(
-            f'Critical Damage: {crit_mod * die[0]}d{die[1]} + {crit_mod * damage}')
+            f'Critical Damage: {num_hits * crit_mod * die[0]}d{die[1]} + {crit_mod * damage}')
 
     def calculate_attack_bonus(self, effective_strength_bonus):
         attack_bonus = self.configuration['BAB'] + self.configuration['WEAPON_BONUS'] + effective_strength_bonus
